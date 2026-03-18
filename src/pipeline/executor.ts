@@ -4,39 +4,13 @@
 
 import chalk from 'chalk';
 import type { IPage } from '../types.js';
-import { stepNavigate, stepClick, stepType, stepWait, stepPress, stepSnapshot, stepEvaluate } from './steps/browser.js';
-import { stepFetch } from './steps/fetch.js';
-import { stepSelect, stepMap, stepFilter, stepSort, stepLimit } from './steps/transform.js';
-import { stepIntercept } from './steps/intercept.js';
-import { stepTap } from './steps/tap.js';
+import { getStep, type StepHandler } from './registry.js';
 import { log } from '../logger.js';
 
 export interface PipelineContext {
   args?: Record<string, any>;
   debug?: boolean;
 }
-
-/** Step handler: all steps conform to (page, params, data, args) => Promise<any> */
-type StepHandler = (page: IPage | null, params: any, data: any, args: Record<string, any>) => Promise<any>;
-
-/** Registry of all available step handlers */
-const STEP_HANDLERS: Record<string, StepHandler> = {
-  navigate: stepNavigate,
-  fetch: stepFetch,
-  select: stepSelect,
-  evaluate: stepEvaluate,
-  snapshot: stepSnapshot,
-  click: stepClick,
-  type: stepType,
-  wait: stepWait,
-  press: stepPress,
-  map: stepMap,
-  filter: stepFilter,
-  sort: stepSort,
-  limit: stepLimit,
-  intercept: stepIntercept,
-  tap: stepTap,
-};
 
 export async function executePipeline(
   page: IPage | null,
@@ -54,7 +28,7 @@ export async function executePipeline(
     for (const [op, params] of Object.entries(step)) {
       if (debug) debugStepStart(i + 1, total, op, params);
 
-      const handler = STEP_HANDLERS[op];
+      const handler = getStep(op);
       if (handler) {
         data = await handler(page, params, data, args);
       } else {
